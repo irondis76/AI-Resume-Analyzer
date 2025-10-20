@@ -50,7 +50,7 @@ streamlit run app.py
 ## Usage
 
 1. Upload your resume in PDF format.
-2. The application will analyze the content and provide insights on your skills, course recommendations, and tips for improving your resume.
+2. The application will analyze the content and provide insights on your skills, course recommendations, and tips for improving your resume
 3. Explore the recommended skills and courses to enhance your qualifications.
 4. Follow the resume tips and ideas to improve the overall quality of your resume.
 5. Check your resume score to see how well it is written and make necessary adjustments.
