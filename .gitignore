@@ -284,7 +284,8 @@ cache/
 uv.lock
 
 # Streamlit
-.streamlit/
+.streamlit/secrets.toml
+# Keep config.toml but ignore secrets
 
 # FastAPI
 .pytest_cache/

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import TypedDict
 
 from langgraph.graph import StateGraph, END
 from openai import OpenAI
@@ -29,8 +29,7 @@ from .prompts import (
 
 client = OpenAI(api_key=settings.openai_api_key)
 
-
-class GraphState(dict):
+class GraphState(TypedDict, total=False):
     # Inputs
     resume: ResumeData
 
@@ -64,8 +63,7 @@ def initial_assessment(state: GraphState) -> GraphState:
     resume = state["resume"]
     extra = f"RAW TEXT:\n{resume.raw_text[:7000]}"
     notes = _chat(INITIAL_ASSESSMENT_PROMPT, extra)
-    state["notes"] = notes
-    return state
+    return {"notes": notes}
 
 
 def skills_analysis(state: GraphState) -> GraphState:
@@ -73,40 +71,40 @@ def skills_analysis(state: GraphState) -> GraphState:
     text = state["resume"].raw_text
     output = _chat(SKILLS_ANALYSIS_PROMPT, f"NOTES:\n{notes}\n\nTEXT:\n{text[:7000]}")
     # Minimal parsing; let downstream synthesis structure
-    state["skills"] = SkillAnalysis(extracted_skills=[], missing_skills=[], recommendations=[])
-    state["skills"].recommendations.append(
+    skills = SkillAnalysis(extracted_skills=[], missing_skills=[], recommendations=[])
+    skills.recommendations.append(
         Recommendation(category="Skills", title="Skills Analysis", description=output, impact="High", priority=2)
     )
-    return state
+    return {"skills": skills}
 
 
 def experience_analysis(state: GraphState) -> GraphState:
     notes = state.get("notes", "")
     text = state["resume"].raw_text
     output = _chat(EXPERIENCE_ANALYSIS_PROMPT, f"NOTES:\n{notes}\n\nTEXT:\n{text[:7000]}")
-    state["experience"] = ExperienceAnalysis(recommendations=[
+    experience = ExperienceAnalysis(recommendations=[
         Recommendation(category="Experience", title="Experience Analysis", description=output, impact="High", priority=2)
     ])
-    return state
+    return {"experience": experience}
 
 
 def formatting_analysis(state: GraphState) -> GraphState:
     text = state["resume"].raw_text
     output = _chat(FORMATTING_ANALYSIS_PROMPT, f"TEXT:\n{text[:7000]}")
-    state["formatting"] = FormattingAnalysis(recommendations=[
+    formatting = FormattingAnalysis(recommendations=[
         Recommendation(category="Formatting", title="Formatting & ATS", description=output, impact="Medium", priority=3)
     ])
-    return state
+    return {"formatting": formatting}
 
 
 def ats_analysis(state: GraphState) -> GraphState:
     notes = state.get("notes", "")
     text = state["resume"].raw_text
     output = _chat(ATS_ANALYSIS_PROMPT, f"NOTES:\n{notes}\n\nTEXT:\n{text[:7000]}")
-    state["ats"] = ATSAnalysis(recommendations=[
+    ats = ATSAnalysis(recommendations=[
         Recommendation(category="ATS", title="ATS Keyword Coverage", description=output, impact="Medium", priority=3)
     ])
-    return state
+    return {"ats": ats}
 
 
 def synthesis(state: GraphState) -> GraphState:
@@ -118,7 +116,7 @@ def synthesis(state: GraphState) -> GraphState:
                 collated.append(f"[{r.category}] {r.title}: {r.description}")
     plan = _chat(SYNTHESIS_PROMPT, "\n\n".join(collated)[:12000])
     report = _chat(REPORT_PROMPT, f"RESUME:\n{text[:6000]}\n\nPLAN:\n{plan[:6000]}")
-    state["result"] = AnalysisResult(
+    result = AnalysisResult(
         summary=plan.splitlines()[0] if plan else "",
         skills=state.get("skills"),
         experience=state.get("experience"),
@@ -129,7 +127,7 @@ def synthesis(state: GraphState) -> GraphState:
         ],
         report_markdown=report,
     )
-    return state
+    return {"result": result}
 
 
 def build_graph():
